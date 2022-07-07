@@ -1,5 +1,7 @@
 use std::{iter::Peekable, str::Chars, ops::Add, error::Error};
 
+use crate::sound_file::{Note, Effect};
+
 enum TokenizerState{
     Default,
     Comment,
@@ -334,7 +336,7 @@ impl<'a> Iterator for Tokenizer<'a>{
                 TokenizerState::EqualEqual => {
                     self.state = TokenizerState::Default;
                     match c{
-                        '-' => {
+                        '=' => {
                             ret = Option::Some(Token::Note(Note::Release));
                             self.state = TokenizerState::Default
                         },
@@ -389,14 +391,6 @@ pub enum Token{
     Error(char, Location),
 }
 
-#[derive(Debug, Clone, Copy)]
-pub enum Note{
-    Hex(u8),
-    Midi(u32),
-    Cut,
-    Release,
-}
-
 #[derive(Debug, Clone)]
 pub struct IdentNum{
     string: String
@@ -412,84 +406,7 @@ impl IdentNum{
     }
 
     pub fn effect(&self)  -> Result<Effect, Box<dyn Error>>{
-        let char = self.string.as_bytes()[0] as char;
-        let num_str = &self.string[1..3];
-        macro_rules! num {
-            () => {
-                u8::from_str_radix(num_str, 16)?
-            };
-        }
-        macro_rules! num_or_default {
-            ($default:expr) => {
-                match u8::from_str_radix(num_str, 16){
-                    Ok(val) => val,
-                    Err(_) => $default,
-                }
-            };
-        }
-        macro_rules! num_x_y {
-            () => {
-                {
-                    let num = u8::from_str_radix(num_str, 16)?;
-                    let x = num >> 4;
-                    let y = num & 0b1111;
-                    (x,y) 
-                }       
-            };
-        }
-
-        macro_rules! num_option {
-            () => {
-                {
-                    let num = u8::from_str_radix(num_str, 16)?;
-                    if num == 0 {Option::None} else {Option::Some(num)}        
-                }
-            };
-        }
-        
-        match char{
-            '0' => Ok(Effect::Arpeggio(num_x_y!().0, num_x_y!().1)),
-            '1' => Ok(Effect::PitchSlideUp(num_option!())),
-            '2' => Ok(Effect::PitchSlideDown(num_option!())),
-            '3' => Ok(Effect::AutomaticPortamento(num_option!())),
-            '4' => Ok(Effect::Arpeggio(num_x_y!().0, num_x_y!().1)),
-            '7' => Ok(Effect::VibratoEffect(if num_x_y!().0 == 0 {None} else {Some(num_x_y!())})),
-            'A' => {
-                if 0 == num_x_y!().0 {
-                    return Ok(Effect::VolumeSlide(false, num_x_y!().1))
-                } else if  0 == num_x_y!().1 {
-                    return Ok(Effect::VolumeSlide(true, num_x_y!().0))
-                } else {
-                    return Err("Invalid slide num".into())
-                }
-            },
-            'B' => Ok(Effect::JumpToPattern(num!())),
-            'C' => Ok(Effect::Halt),
-            'D' => Ok(Effect::SkipFrameStartAtRow(num!())),
-            //'E' => Ok(Effect::JumpToPattern(num!())),
-            'F' => {
-                let num = num!();
-                match num {
-                    0x00..=0x1F => Ok(Effect::SpeedOrTempo(Option::Some(num), None)),
-                    0x20..=0xFF => Ok(Effect::SpeedOrTempo(None, Some(num))),
-                }
-            },
-            'G' => Ok(Effect::NoteDelay(num!())),
-            'H' => Ok(Effect::HardwareSweepUp(num_x_y!().0, num_x_y!().1)),
-            'I' => Ok(Effect::HardwareSweepDown(num_x_y!().0, num_x_y!().1)),
-            'P' => Ok(Effect::FinePitch(num_or_default!(0x80))),
-            'Q' => Ok(Effect::NoteSlideUp(num_x_y!().0, num_x_y!().1)),
-            'R' => Ok(Effect::NoteSlideDown(num_x_y!().0, num_x_y!().1)),
-            'S' => Ok(Effect::MuteDelay(num!())),
-            'V' => Ok(Effect::MuteDelay(num!())),
-            'W' => Ok(Effect::AquareDuityNoiseN163Mode()),
-            'X' => Ok(Effect::DPCMSampleSpeedOverride(num!())),
-            'Y' => Ok(Effect::DPCMSampleOffset(num!() as u32 * 64)),
-            'Z' => Ok(Effect::DPCMDeltaCounter(num!())),
-            _ => {
-                Result::Err("Unknown Effect number".into())
-            }
-        }
+        Effect::try_from(self.string.as_str())
     }
 
     pub fn from_str(str: &str) -> Self{
@@ -499,33 +416,6 @@ impl IdentNum{
     pub fn as_str(&self) -> &str{
         self.string.as_str()
     }
-}
-#[derive(Debug, Clone, Copy)]
-pub enum Effect{
-    Arpeggio(u8, u8),
-    PitchSlideUp(Option<u8>),
-    PitchSlideDown(Option<u8>),
-    AutomaticPortamento(Option<u8>),
-    VibratoEffect(Option<(u8, u8)>),
-    TremoloEffect(Option<(u8, u8)>),
-    VolumeSlide(bool, u8),
-    JumpToPattern(u8),
-    Halt,
-    SkipFrameStartAtRow(u8),
-    SpeedOrTempo(Option<u8>, Option<u8>),
-    NoteDelay(u8),
-    HardwareSweepUp(u8, u8),
-    HardwareSweepDown(u8, u8),
-    FSDModulationDepth,
-    FDSModulationSpeed,
-    FinePitch(u8),
-    NoteSlideUp(u8, u8),
-    NoteSlideDown(u8, u8),
-    MuteDelay(u8),
-    AquareDuityNoiseN163Mode(/*TODO */),
-    DPCMSampleSpeedOverride(u8),
-    DPCMSampleOffset(u32),
-    DPCMDeltaCounter(u8),
 }
 
 impl From<&str> for IdentNum{

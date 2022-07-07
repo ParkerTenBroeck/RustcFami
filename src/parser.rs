@@ -1,102 +1,7 @@
 use std::{error::Error};
 
-use crate::tokenizer::{Tokenizer, self, Token, SkipNLPeekable, Note, Effect};
+use crate::{tokenizer::{Tokenizer, self, Token, SkipNLPeekable}, sound_file::*};
 
-#[allow(unused)]
-#[derive(Default, Debug)]
-pub struct SoundFile{
-    title: String,
-    author: String,
-    copyright: String,
-    comment: String,
-
-    machine: u32,
-    expansion: u32,
-    vibrato: u32,
-    split: u32,
-    playbackrate: (u32, u32),
-    tuning: (i32, i32),
-
-    macros: Vec<SongMacro>,
-    inst2a03: Vec<Inst2A03>,
-    keydpcm: Vec<KeyDPCM>,
-    dpcmdef: Vec<SongDpcmSamples>,
-    tracks: Vec<Track>,
-}
-
-
-#[derive(Debug)]
-struct KeyDPCM{
-    id: u8,
-    inst_id: u8,
-    midi_note: u32,
-    //_3: Option<u8>,
-    dpcm_id: u8,
-    loop_key: bool,
-    loop_point: u8,
-    d_counter: Option<u8>,
-}
-
-#[derive(Debug)]
-struct Inst2A03{
-    id: u8,
-    vol_macro: Option<u8>,
-    arp_macro: Option<u8>,
-    pitch_macro: Option<u8>,
-    high_pitch_macro: Option<u8>,
-    duity_macro: Option<u8>,
-    name: String,
-}
-
-#[derive(Debug)]
-struct Track{
-    _1: u32,
-    speed: u32,
-    temp: u32,
-    name: String,
-    comumns: Vec<u8>,
-    pattern_order: Vec<(u8, Vec<u8>)>,
-    patterns: Vec<Pattern>
-}
-
-
-#[derive(Debug)]
-struct Pattern{
-    id: u8,
-    rows: Vec<Row>
-}
-
-#[derive(Debug)]
-struct Row{
-    id: u8,
-    sheet_notes: Vec<SheetNote>
-}
-
-
-#[derive(Debug)]
-struct SheetNote{
-    note: Option<Note>,
-    inst: Option<u8>,
-    vol: Option<u8>,
-    efx: [Option<Effect>; 3]
-}
-
-#[derive(Debug)]
-struct SongDpcmSamples{
-    id: u8,
-    name: String,
-    data: Vec<u8>
-}
-
-#[derive(Debug)]
-struct SongMacro{
-    m_type: u8,
-    m_id: u8,
-    m_loop: Option<u8>,
-    m_release: Option<u8>,
-    m_type_specific: u8,
-    vals: Vec<i8>
-}
 
 fn option_note(token: Option<Token>) -> Result<Option<Note>, Box<dyn Error>>{
     match token{
@@ -417,7 +322,7 @@ pub fn read_text(str: &str) -> Result<SoundFile, Box<dyn Error>>{
                     }
                     "TRACK" => {
                         let mut track = Track{
-                            _1: expect_dec_num(tokenizer.next())?.try_into()?,
+                            pattern_length: expect_dec_num(tokenizer.next())?.try_into()?,
                             speed: expect_dec_num(tokenizer.next())?.try_into()?,
                             temp: expect_dec_num(tokenizer.next())?.try_into()?,
                             name: expect_str(tokenizer.next())?,
@@ -493,6 +398,9 @@ pub fn read_text(str: &str) -> Result<SoundFile, Box<dyn Error>>{
                                                 sheet_note.efx[j as usize] = option_effect(tokenizer.next())?;
                                             }
                                             row.sheet_notes.push(sheet_note);
+                                        }
+                                        if pattern.rows.len() != track.pattern_length as usize{
+                                            return Err("Given pattern length doesn match actual pattern length".into());
                                         }
 
                                         pattern.rows.push(row);
