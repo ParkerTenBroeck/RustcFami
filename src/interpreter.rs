@@ -45,13 +45,36 @@ impl<'a> Interpreter<'a>{
 
     fn play_current_row(&mut self){
         let track = self.current_track.unwrap();
-        let pattern = &track.pattern_order[self.pattern_order as usize];
-        let row = &track.patterns[pattern.0 as usize].rows[self.row as usize];
-        self.play_sheet_notes(&row.sheet_notes, &pattern.1);
+        let curr_order = &track.pattern_order[self.pattern_order as usize];
+        
+        for i in 0..curr_order.1.len(){
+            let current_order_note_pattern = &track.patterns[curr_order.1[i] as usize];
+            let row = &current_order_note_pattern.rows[self.row as usize];
+            self.play_sheet_note( &row.sheet_notes[i], i as u8);
+        }
     }
 
-    fn play_sheet_notes(&mut self, notes: &Vec<SheetNote>, inst: &Vec<u8>){
-        
+    fn play_sheet_note(&mut self, note: &SheetNote, inst: u8){
+        match inst{
+            0 => {
+                //square 1
+            }
+            1 => {
+                //square 2
+            }
+            2 => {
+                //triangle 1
+            }
+            3 => {
+                //nosie 1
+            }
+            4 => {
+                //DPCM
+            }
+            _ => {
+                
+            }
+        }
     }
 
     pub fn run_frame(&mut self){

@@ -9,3 +9,19 @@ pub struct I2A03{
     triangle: (),
     noise: (),
 }
+
+impl I2A03{
+    pub fn write_register(&mut self, add: u16, data: u8){
+
+    }
+}
+
+struct SquareChannel{
+
+}
+
+impl SquareChannel{
+    pub fn write_register(&mut self, add: u16, data: u8){
+
+    }
+}
