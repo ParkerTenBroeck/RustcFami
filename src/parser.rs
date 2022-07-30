@@ -399,14 +399,15 @@ pub fn read_text(str: &str) -> Result<SoundFile, Box<dyn Error>>{
                                             }
                                             row.sheet_notes.push(sheet_note);
                                         }
-                                        if pattern.rows.len() != track.pattern_length as usize{
-                                            return Err("Given pattern length doesn match actual pattern length".into());
-                                        }
 
                                         pattern.rows.push(row);
                                     }else{
                                         break;//return Err("Expected Ident ROW found other".into());
                                     }
+                                }
+
+                                if pattern.rows.len() != track.pattern_length as usize{
+                                    return Err("Given pattern length doesn match actual pattern length".into());
                                 }
                                 track.patterns.push(pattern);
                                 //orders.push((id, order_data));

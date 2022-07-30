@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 rodio = "*"
+bitfield = "0.12.0"

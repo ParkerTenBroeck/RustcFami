@@ -1,10 +1,11 @@
-use crate::sound_file::*;
+use crate::{sound_file::*, hardware_interface::HardwareInterface};
 
 pub struct Interpreter<'a>{
     file: &'a SoundFile,
     current_track: Option<&'a Track>,
     row: u8,
     pattern_order: u8,
+    audio: HardwareInterface,
 }
 
 impl<'a> Interpreter<'a>{
@@ -14,6 +15,7 @@ impl<'a> Interpreter<'a>{
             current_track: Default::default(),
             row: 0,
             pattern_order: 0, 
+            audio: HardwareInterface::new()
         }
     }
 
@@ -78,7 +80,9 @@ impl<'a> Interpreter<'a>{
     }
 
     pub fn run_frame(&mut self){
-
+        let asdf = move||{
+            self.play_current_row();
+        };
     }
 
     pub fn play_frame(&mut self){
